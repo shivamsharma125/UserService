@@ -1,11 +1,6 @@
 package com.shivam.userservice.exceptions;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class UserAlreadyPresentException extends RuntimeException {
+public class UserAlreadyPresentException extends Exception {
     public UserAlreadyPresentException(String message){
         super(message);
     }

@@ -32,7 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User signUp(String name, String email, String password) throws UserAlreadyPresentException {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+        Optional<User> optionalUser = userRepository.findByEmailAndDeleted(email,false);
         if (optionalUser.isPresent()){
             // user with email is already present
             throw new UserAlreadyPresentException("a user is already present with email " + email);
@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Token login(String email, String password) throws NoUserFoundException, InvalidPasswordException {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+        Optional<User> optionalUser = userRepository.findByEmailAndDeleted(email,false);
         if (optionalUser.isEmpty()){
             throw new NoUserFoundException("Invalid email id.");
         }

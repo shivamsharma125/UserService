@@ -82,7 +82,7 @@ public class UserServiceImpl implements UserService {
         // 2. If not valid, throw an exception
         // 3. If yes, mark the deleted column to true
 
-        Optional<Token> optionalToken = tokenRepository.findByValue(token);
+        Optional<Token> optionalToken = tokenRepository.findByValueAndDeleted(token, false);
 
         if (optionalToken.isEmpty()){
             throw new InvalidTokenException("No token with value " + token + " found in the db.");
@@ -110,7 +110,7 @@ public class UserServiceImpl implements UserService {
         // 4. If expired -> throw an exception
         // 5. return user object
 
-        Optional<Token> optionalToken = tokenRepository.findByValue(token);
+        Optional<Token> optionalToken = tokenRepository.findByValueAndDeleted(token, false);
 
         if (optionalToken.isEmpty()){
             throw new TokenNotFoundException("No token with value '" + token + "' found in the db.");

@@ -34,14 +34,14 @@ public class ExceptionHandlerAdvice {
     public ResponseEntity<ExceptionDto> handleInvalidTokenException(InvalidTokenException exception){
         ExceptionDto exceptionDto = new ExceptionDto();
         exceptionDto.setFailureMessage(exception.getMessage());
-        exceptionDto.setStatusCode(HttpStatus.BAD_REQUEST.value());
-        return new ResponseEntity<>(exceptionDto, HttpStatus.BAD_REQUEST);
+        exceptionDto.setStatusCode(HttpStatus.OK.value());
+        return new ResponseEntity<>(exceptionDto, HttpStatus.OK);
     }
     @ExceptionHandler(TokenNotFoundException.class)
     public ResponseEntity<ExceptionDto> handleTokenNotFoundException(TokenNotFoundException exception){
         ExceptionDto exceptionDto = new ExceptionDto();
         exceptionDto.setFailureMessage(exception.getMessage());
-        exceptionDto.setStatusCode(HttpStatus.NOT_FOUND.value());
-        return new ResponseEntity<>(exceptionDto, HttpStatus.NOT_FOUND);
+        exceptionDto.setStatusCode(HttpStatus.OK.value());
+        return new ResponseEntity<>(exceptionDto, HttpStatus.OK);
     }
 }

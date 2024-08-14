@@ -1,10 +1,7 @@
 package com.shivam.userservice.controllers;
 
 import com.shivam.userservice.dtos.*;
-import com.shivam.userservice.exceptions.InvalidPasswordException;
-import com.shivam.userservice.exceptions.InvalidTokenException;
-import com.shivam.userservice.exceptions.NoUserFoundException;
-import com.shivam.userservice.exceptions.UserAlreadyPresentException;
+import com.shivam.userservice.exceptions.*;
 import com.shivam.userservice.models.Token;
 import com.shivam.userservice.models.User;
 import com.shivam.userservice.services.UserService;
@@ -44,18 +41,26 @@ public class UserController {
         responseDto.setEmail(token.getUser().getEmail());
         responseDto.setUsername(token.getUser().getName());
         responseDto.setToken(token.getValue());
-        responseDto.setRoles(token.getUser().getRoles());
 
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     // logOut
     @PostMapping("/logout/{token}")
-    public ResponseEntity<LogoutResponseDto> logout(@PathVariable("token") String token) throws InvalidTokenException {
+    public ResponseEntity<LogoutResponseDto> logout(@PathVariable("token") String token) throws InvalidTokenException, TokenNotFoundException {
         userService.logout(token);
         return new ResponseEntity<>(
                 new LogoutResponseDto("user has been logged out successfully."),
                 HttpStatus.OK
         );
+    }
+
+    @GetMapping("/validate/{token}")
+    public ResponseEntity<ValidateTokenResponseDto> validateToken(@PathVariable String token) throws InvalidTokenException, TokenNotFoundException {
+        User user = userService.validateToken(token);
+        ValidateTokenResponseDto responseDto = new ValidateTokenResponseDto();
+        responseDto.setUserDto(UserDto.from(user));
+        responseDto.setStatusCode(HttpStatus.OK.value());
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

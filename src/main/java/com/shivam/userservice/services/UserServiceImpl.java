@@ -1,9 +1,6 @@
 package com.shivam.userservice.services;
 
-import com.shivam.userservice.exceptions.InvalidPasswordException;
-import com.shivam.userservice.exceptions.InvalidTokenException;
-import com.shivam.userservice.exceptions.NoUserFoundException;
-import com.shivam.userservice.exceptions.UserAlreadyPresentException;
+import com.shivam.userservice.exceptions.*;
 import com.shivam.userservice.models.Token;
 import com.shivam.userservice.models.User;
 import com.shivam.userservice.repositories.TokenRepository;
@@ -80,19 +77,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void logout(String tokenValue) throws InvalidTokenException {
+    public void logout(String token) throws InvalidTokenException {
         // 1. Check it the token is valid or not
         // 2. If not valid, throw an exception
         // 3. If yes, mark the deleted column to true
 
-        Optional<Token> optionalToken = tokenRepository.findByValue(tokenValue);
+        Optional<Token> optionalToken = tokenRepository.findByValue(token);
 
         if (optionalToken.isEmpty()){
-            throw new InvalidTokenException("No such token is present in the db.");
+            throw new InvalidTokenException("No token with value " + token + " found in the db.");
         }
 
-        Token token = optionalToken.get();
-        Date expiryDate = token.getExpiryAt();
+        Token savedToken = optionalToken.get();
+        Date expiryDate = savedToken.getExpiryAt();
 
         Date currentDate = new Date();
 
@@ -100,8 +97,34 @@ public class UserServiceImpl implements UserService {
             throw new InvalidTokenException("Token has already been expired.");
         }
 
-        token.setDeleted(true);
+        savedToken.setDeleted(true);
 
-        tokenRepository.save(token);
+        tokenRepository.save(savedToken);
+    }
+
+    @Override
+    public User validateToken(String token) throws InvalidTokenException, TokenNotFoundException {
+        // 1. Check if the token is present of not
+        // 2. If not present -> throw an exception
+        // 3. If present, check if expired or not
+        // 4. If expired -> throw an exception
+        // 5. return user object
+
+        Optional<Token> optionalToken = tokenRepository.findByValue(token);
+
+        if (optionalToken.isEmpty()){
+            throw new TokenNotFoundException("No token with value '" + token + "' found in the db.");
+        }
+
+        Token savedToken = optionalToken.get();
+        Date expiryDate = savedToken.getExpiryAt();
+
+        Date currentDate = new Date();
+
+        if (!currentDate.before(expiryDate)){
+            throw new InvalidTokenException("Token has already been expired.");
+        }
+
+        return savedToken.getUser();
     }
 }

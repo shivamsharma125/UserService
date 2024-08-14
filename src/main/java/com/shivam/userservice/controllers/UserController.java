@@ -1,10 +1,8 @@
 package com.shivam.userservice.controllers;
 
-import com.shivam.userservice.dtos.LoginRequestDto;
-import com.shivam.userservice.dtos.LoginResponseDto;
-import com.shivam.userservice.dtos.SignUpRequestDto;
-import com.shivam.userservice.dtos.UserDto;
+import com.shivam.userservice.dtos.*;
 import com.shivam.userservice.exceptions.InvalidPasswordException;
+import com.shivam.userservice.exceptions.InvalidTokenException;
 import com.shivam.userservice.exceptions.NoUserFoundException;
 import com.shivam.userservice.exceptions.UserAlreadyPresentException;
 import com.shivam.userservice.models.Token;
@@ -12,10 +10,7 @@ import com.shivam.userservice.models.User;
 import com.shivam.userservice.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
@@ -55,4 +50,12 @@ public class UserController {
     }
 
     // logOut
+    @PostMapping("/logout/{token}")
+    public ResponseEntity<LogoutResponseDto> logout(@PathVariable("token") String token) throws InvalidTokenException {
+        userService.logout(token);
+        return new ResponseEntity<>(
+                new LogoutResponseDto("user has been logged out successfully."),
+                HttpStatus.OK
+        );
+    }
 }

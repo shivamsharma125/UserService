@@ -2,6 +2,7 @@ package com.shivam.userservice.advices;
 
 import com.shivam.userservice.dtos.ExceptionDto;
 import com.shivam.userservice.exceptions.InvalidPasswordException;
+import com.shivam.userservice.exceptions.InvalidTokenException;
 import com.shivam.userservice.exceptions.NoUserFoundException;
 import com.shivam.userservice.exceptions.UserAlreadyPresentException;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,10 @@ public class ExceptionHandlerAdvice {
     }
     @ExceptionHandler(InvalidPasswordException.class)
     public ResponseEntity<ExceptionDto> handleInvalidPasswordException(InvalidPasswordException exception){
+        return new ResponseEntity<>(new ExceptionDto(exception.getMessage()), HttpStatus.OK);
+    }
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ExceptionDto> handleInvalidTokenException(InvalidTokenException exception){
         return new ResponseEntity<>(new ExceptionDto(exception.getMessage()), HttpStatus.OK);
     }
 }

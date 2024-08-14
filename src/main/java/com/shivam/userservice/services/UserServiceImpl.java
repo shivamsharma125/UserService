@@ -1,6 +1,7 @@
 package com.shivam.userservice.services;
 
 import com.shivam.userservice.exceptions.InvalidPasswordException;
+import com.shivam.userservice.exceptions.InvalidTokenException;
 import com.shivam.userservice.exceptions.NoUserFoundException;
 import com.shivam.userservice.exceptions.UserAlreadyPresentException;
 import com.shivam.userservice.models.Token;
@@ -76,5 +77,31 @@ public class UserServiceImpl implements UserService {
         token.setExpiryAt(expiryDate);
 
         return token;
+    }
+
+    @Override
+    public void logout(String tokenValue) throws InvalidTokenException {
+        // 1. Check it the token is valid or not
+        // 2. If not valid, throw an exception
+        // 3. If yes, mark the deleted column to true
+
+        Optional<Token> optionalToken = tokenRepository.findByValue(tokenValue);
+
+        if (optionalToken.isEmpty()){
+            throw new InvalidTokenException("No such token is present in the db.");
+        }
+
+        Token token = optionalToken.get();
+        Date expiryDate = token.getExpiryAt();
+
+        Date currentDate = new Date();
+
+        if (!currentDate.before(expiryDate)){
+            throw new InvalidTokenException("Token has already been expired.");
+        }
+
+        token.setDeleted(true);
+
+        tokenRepository.save(token);
     }
 }

@@ -127,4 +127,15 @@ public class UserServiceImpl implements UserService {
 
         return savedToken.getUser();
     }
+
+    @Override
+    public User getUserDetails(Long userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+
+        if (optionalUser.isEmpty()){
+            throw new NoUserFoundException(userId);
+        }
+
+        return optionalUser.get();
+    }
 }

@@ -9,4 +9,5 @@ public interface UserService {
     Token login(String email, String password) throws NoUserFoundException, InvalidPasswordException;
     void logout(String token) throws InvalidTokenException, TokenNotFoundException;
     User validateToken(String token) throws InvalidTokenException, TokenNotFoundException;
+    User getUserDetails(Long userId);
 }

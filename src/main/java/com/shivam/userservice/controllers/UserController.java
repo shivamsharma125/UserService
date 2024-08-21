@@ -63,4 +63,13 @@ public class UserController {
         responseDto.setStatusCode(HttpStatus.OK.value());
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDetailsResponseDto> getUserDetails(@PathVariable("id") Long userId){
+        User user = userService.getUserDetails(userId);
+        UserDetailsResponseDto responseDto = new UserDetailsResponseDto();
+        responseDto.setUser(UserDto.from(user));
+        responseDto.setStatusCode(HttpStatus.OK.value());
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
 }

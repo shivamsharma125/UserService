@@ -1,11 +1,16 @@
 package com.shivam.userservice.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shivam.userservice.configs.KafkaProducerClient;
+import com.shivam.userservice.dtos.SendEmailDto;
 import com.shivam.userservice.exceptions.*;
 import com.shivam.userservice.models.Token;
 import com.shivam.userservice.models.User;
 import com.shivam.userservice.repositories.TokenRepository;
 import com.shivam.userservice.repositories.UserRepository;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,13 +24,19 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private TokenRepository tokenRepository;
+    private KafkaProducerClient kafkaProducerClient;
+    private ObjectMapper objectMapper;
 
     UserServiceImpl(UserRepository userRepository,
                     BCryptPasswordEncoder bCryptPasswordEncoder,
-                    TokenRepository tokenRepository){
+                    TokenRepository tokenRepository,
+                    KafkaProducerClient kafkaProducerClient,
+                    ObjectMapper objectMapper){
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
+        this.kafkaProducerClient = kafkaProducerClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -41,7 +52,22 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Once user has signed up, send a message to Kafka for sending an email to the user
+        SendEmailDto sendEmailDto = new SendEmailDto();
+        sendEmailDto.setTo(user.getEmail());
+        sendEmailDto.setSubject("Welcome Email");
+        sendEmailDto.setBody("Have a great learning experience!!");
+
+
+        try {
+            kafkaProducerClient.sendMessage("SendEmail", objectMapper.writeValueAsString(sendEmailDto));
+        } catch (JsonProcessingException e) {
+            System.out.println("Something went wrong while sending a message to Kafka");
+        }
+
+        return savedUser;
     }
 
     @Override

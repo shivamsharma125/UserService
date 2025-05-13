@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ValidateTokenResponseDto extends BaseResponseDto {
-    private UserDto userDto;
+public class RoleDto {
+    private Long id;
+    private String name;
 }

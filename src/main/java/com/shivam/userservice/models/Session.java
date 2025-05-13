@@ -2,24 +2,16 @@ package com.shivam.userservice.models;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
-
+@Entity
 @Getter
 @Setter
-@Entity
-public class Token extends BaseModel {
-    private String value;
-    private Date expiryAt;
+@Table(name = "sessions")
+public class Session extends BaseModel {
+    private String token;
     @ManyToOne
     private User user;
 }
-
-/*
-*
-*   1         1
-* Token ---- User => M:1
-*   M         1
-* */

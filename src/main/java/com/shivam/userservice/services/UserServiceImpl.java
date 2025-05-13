@@ -5,56 +5,131 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shivam.userservice.configs.KafkaProducerClient;
 import com.shivam.userservice.dtos.SendEmailDto;
 import com.shivam.userservice.exceptions.*;
-import com.shivam.userservice.models.Token;
+import com.shivam.userservice.models.Role;
+import com.shivam.userservice.models.Session;
+import com.shivam.userservice.models.Status;
 import com.shivam.userservice.models.User;
-import com.shivam.userservice.repositories.TokenRepository;
+import com.shivam.userservice.repositories.RoleRepository;
+import com.shivam.userservice.repositories.SessionRepository;
 import com.shivam.userservice.repositories.UserRepository;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
+import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-    private TokenRepository tokenRepository;
-    private KafkaProducerClient kafkaProducerClient;
-    private ObjectMapper objectMapper;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final KafkaProducerClient kafkaProducerClient;
+    private final ObjectMapper objectMapper;
+    private final SecretKey secretKey;
+    private final SessionRepository sessionRepository;
 
     UserServiceImpl(UserRepository userRepository,
+                    RoleRepository roleRepository,
                     BCryptPasswordEncoder bCryptPasswordEncoder,
-                    TokenRepository tokenRepository,
                     KafkaProducerClient kafkaProducerClient,
-                    ObjectMapper objectMapper){
+                    ObjectMapper objectMapper,
+                    SecretKey secretKey,
+                    SessionRepository sessionRepository){
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.tokenRepository = tokenRepository;
         this.kafkaProducerClient = kafkaProducerClient;
         this.objectMapper = objectMapper;
+        this.secretKey = secretKey;
+        this.sessionRepository = sessionRepository;
     }
 
     @Override
-    public User signUp(String name, String email, String password) throws UserAlreadyPresentException {
-        Optional<User> optionalUser = userRepository.findByEmailAndDeleted(email,false);
-        if (optionalUser.isPresent()){
-            // user with email is already present
-            throw new UserAlreadyPresentException("a user is already present with email " + email);
-        }
+    public User signUp(String name, String email, String password) throws UserAlreadyExistException {
+        boolean isUserExist = userRepository.existsByEmailAndStatus(email,Status.ACTIVE);
+        if (isUserExist)
+            throw new UserAlreadyExistException("User is already present with email " + email);
 
         User user = new User();
         user.setName(name);
         user.setEmail(email);
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
+        Role role = roleRepository.findByNameAndStatus("Customer",Status.ACTIVE)
+                        .orElseGet(() -> {
+                            Role newRole = new Role();
+                            newRole.setName("CUSTOMER");
+                            return roleRepository.save(newRole);
+                        });
+
+        user.setRoles(List.of(role));
+
         User savedUser = userRepository.save(user);
 
-        // Once user has signed up, send a message to Kafka for sending an email to the user
+        // Once user has signed up, send a message to Kafka for sending a welcome email to the user
+        sendWelcomeEmail(savedUser);
+
+        return savedUser;
+    }
+
+    @Override
+    public Pair<User, String> login(String email, String password) throws UserNotFoundException, PasswordMismatchException {
+        User user = userRepository.findByEmailAndStatus(email,Status.ACTIVE)
+                .orElseThrow(() -> new UserNotFoundException("Invalid email id."));
+
+        if (!bCryptPasswordEncoder.matches(password, user.getHashedPassword())){
+            throw new PasswordMismatchException("Either incorrect email or password is entered.");
+        }
+
+        //Generating JWT
+        Map<String,Object> payload = new HashMap<>();
+        long nowInMillis = System.currentTimeMillis();
+        payload.put(Claims.ISSUED_AT,nowInMillis);
+        payload.put(Claims.EXPIRATION,nowInMillis + (30L *24*60*60*1000));
+        payload.put(Claims.SUBJECT,user.getId().toString());
+        payload.put(Claims.ISSUER,"shivam.com");
+        payload.put("scope",user.getRoles().stream().map(Role::getName).toList());
+
+        String token = Jwts.builder()
+                .claims(payload)
+                .signWith(secretKey)
+                .compact();
+
+        // Saving this token to maintain multiple sessions for user
+        Session session = new Session();
+        session.setToken(token);
+        session.setUser(user);
+        sessionRepository.save(session);
+
+        return new Pair<>(user,token);
+    }
+
+    @Override
+    public Boolean validateToken(Long userId, String token) {
+        Session session = sessionRepository.findByUserIdAndToken(userId,token)
+                .orElseThrow(() -> new TokenNotFoundException("token is not associated to the user or expired."));
+
+        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
+        Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+
+        Date expiry = claims.getExpiration();
+        if (expiry.before(new Date())) {
+            session.setStatus(Status.INACTIVE);
+            sessionRepository.save(session);
+            throw new TokenExpiredException("token is expired");
+        }
+
+        return true;
+    }
+
+    private void sendWelcomeEmail(User user) {
         SendEmailDto sendEmailDto = new SendEmailDto();
         sendEmailDto.setTo(user.getEmail());
         sendEmailDto.setSubject("Welcome Email");
@@ -66,102 +141,5 @@ public class UserServiceImpl implements UserService {
         } catch (JsonProcessingException e) {
             System.out.println("Something went wrong while sending a message to Kafka");
         }
-
-        return savedUser;
-    }
-
-    @Override
-    public Token login(String email, String password) throws NoUserFoundException, InvalidPasswordException {
-        Optional<User> optionalUser = userRepository.findByEmailAndDeleted(email,false);
-        if (optionalUser.isEmpty()){
-            throw new NoUserFoundException("Invalid email id.");
-        }
-
-        User user = optionalUser.get();
-
-        if (!bCryptPasswordEncoder.matches(password, user.getHashedPassword())){
-            throw new InvalidPasswordException("Either incorrect email or password is entered.");
-        }
-
-        Token token = generateToken(user);
-
-        return tokenRepository.save(token);
-    }
-
-    private Token generateToken(User user){
-        Token token = new Token();
-        token.setValue(RandomStringUtils.randomAlphanumeric(128));
-        token.setUser(user);
-
-        LocalDate currentTime = LocalDate.now();
-        LocalDate thirtyDaysFromCurrentTime = currentTime.plusDays(30);
-
-        Date expiryDate = Date.from(thirtyDaysFromCurrentTime.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        token.setExpiryAt(expiryDate);
-
-        return token;
-    }
-
-    @Override
-    public void logout(String token) throws InvalidTokenException {
-        // 1. Check it the token is valid or not
-        // 2. If not valid, throw an exception
-        // 3. If yes, mark the deleted column to true
-
-        Optional<Token> optionalToken = tokenRepository.findByValueAndDeleted(token, false);
-
-        if (optionalToken.isEmpty()){
-            throw new InvalidTokenException("No token with value " + token + " found in the db.");
-        }
-
-        Token savedToken = optionalToken.get();
-        Date expiryDate = savedToken.getExpiryAt();
-
-        Date currentDate = new Date();
-
-        if (!currentDate.before(expiryDate)){
-            throw new InvalidTokenException("Token has already been expired.");
-        }
-
-        savedToken.setDeleted(true);
-
-        tokenRepository.save(savedToken);
-    }
-
-    @Override
-    public User validateToken(String token) throws InvalidTokenException, TokenNotFoundException {
-        // 1. Check if the token is present of not
-        // 2. If not present -> throw an exception
-        // 3. If present, check if expired or not
-        // 4. If expired -> throw an exception
-        // 5. return user object
-
-        Optional<Token> optionalToken = tokenRepository.findByValueAndDeleted(token, false);
-
-        if (optionalToken.isEmpty()){
-            throw new TokenNotFoundException("No token with value '" + token + "' found in the db.");
-        }
-
-        Token savedToken = optionalToken.get();
-        Date expiryDate = savedToken.getExpiryAt();
-
-        Date currentDate = new Date();
-
-        if (!currentDate.before(expiryDate)){
-            throw new InvalidTokenException("Token has already been expired.");
-        }
-
-        return savedToken.getUser();
-    }
-
-    @Override
-    public User getUserDetails(Long userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-
-        if (optionalUser.isEmpty()){
-            throw new NoUserFoundException(userId);
-        }
-
-        return optionalUser.get();
     }
 }

@@ -1,9 +1,6 @@
 package com.shivam.userservice.advices;
 
-import com.shivam.userservice.exceptions.PasswordMismatchException;
-import com.shivam.userservice.exceptions.TokenNotFoundException;
-import com.shivam.userservice.exceptions.UserAlreadyExistException;
-import com.shivam.userservice.exceptions.UserNotFoundException;
+import com.shivam.userservice.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,7 +18,8 @@ public class ExceptionHandlerAdvice {
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler({PasswordMismatchException.class, TokenNotFoundException.class})
+    @ExceptionHandler({PasswordMismatchException.class, TokenNotFoundException.class,
+            TokenExpiredException.class, InvalidTokenException.class})
     public ResponseEntity<String> handleUnAuthorizedCase(Exception exception) {
         return new ResponseEntity<>(exception.getMessage(),HttpStatus.UNAUTHORIZED);
     }

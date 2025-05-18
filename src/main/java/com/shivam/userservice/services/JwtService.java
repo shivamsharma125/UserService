@@ -25,7 +25,7 @@ public class JwtService implements TokenService {
         long nowInMillis = System.currentTimeMillis();
         payload.put(Claims.ISSUED_AT,nowInMillis);
         payload.put(Claims.EXPIRATION,nowInMillis + (30L *24*60*60*1000));
-        payload.put(Claims.SUBJECT,user.getId());
+        payload.put(Claims.SUBJECT,user.getId().toString());
         payload.put(Claims.ISSUER,"shivam.com");
         payload.put("scope",user.getRoles().stream().map(Role::getName).toList());
 

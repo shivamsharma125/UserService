@@ -94,18 +94,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Boolean validateToken(Long userId, String token) {
-        Session session = sessionRepository.findByUserIdAndToken(userId,token)
-                .orElseThrow(() -> new TokenNotFoundException("token is not associated to the user."));
-
-        if (session.getStatus().equals(Status.INACTIVE)){
-            throw new TokenExpiredException("token is expired");
-        }
-
-        // check token validity and expiry
+        // check token validity
         boolean isTokenValid = tokenService.validateToken(token);
         if (!isTokenValid)
             throw new InvalidTokenException("token is invalid or tampered");
 
+        // check is token associated to the user
+        Session session = sessionRepository.findByUserIdAndToken(userId,token)
+                .orElseThrow(() -> new TokenNotFoundException("token is not associated to the user."));
+
+        // check is token is active
+        if (session.getStatus().equals(Status.INACTIVE)){
+            throw new TokenExpiredException("token is expired");
+        }
+
+        // check token expiry
         boolean isTokenExpired = tokenService.isTokenExpired(token);
         if (isTokenExpired) {
             session.setStatus(Status.INACTIVE);

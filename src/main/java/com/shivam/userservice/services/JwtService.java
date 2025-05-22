@@ -5,6 +5,9 @@ import com.shivam.userservice.models.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -14,11 +17,8 @@ import java.util.Map;
 
 @Service
 public class JwtService implements TokenService {
-    private final SecretKey secretKey;
-
-    public JwtService(SecretKey secretKey){
-        this.secretKey = secretKey;
-    }
+    @Value("${jwt.secret}")
+    private String secretKeyString;
 
     public String generateToken(User user) {
         Map<String,Object> payload = new HashMap<>();
@@ -28,6 +28,8 @@ public class JwtService implements TokenService {
         payload.put(Claims.SUBJECT,user.getId().toString());
         payload.put(Claims.ISSUER,"shivam.com");
         payload.put("scope",user.getRoles().stream().map(Role::getName).toList());
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyString));
 
         String token = Jwts.builder()
                 .claims(payload)
@@ -39,6 +41,8 @@ public class JwtService implements TokenService {
 
     public Boolean validateToken(String token) {
         try {
+            SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyString));
+
             Jwts.parser()
                     .verifyWith(secretKey) // Verifies the signature
                     .build()
@@ -51,6 +55,7 @@ public class JwtService implements TokenService {
 
     @Override
     public Boolean isTokenExpired(String token) {
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyString));
         JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
         Claims claims = jwtParser.parseSignedClaims(token).getPayload();
 

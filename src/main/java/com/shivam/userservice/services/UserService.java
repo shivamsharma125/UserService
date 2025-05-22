@@ -9,4 +9,5 @@ public interface UserService {
     User signUp(String name, String email, String password) throws UserAlreadyExistException;
     String login(String email, String password) throws UserNotFoundException, PasswordMismatchException;
     Boolean validateToken(Long userId, String token);
+    String oauthLogin(String email, String name);
 }

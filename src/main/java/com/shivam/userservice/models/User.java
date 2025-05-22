@@ -16,7 +16,7 @@ public class User extends BaseModel {
     private String name;
     @Column(nullable = false, unique = true)
     private String email;
-    @Column(name = "password", nullable = false)
+    @Column(name = "password")
     private String hashedPassword;
     private boolean isEmailVerified;
     @ManyToMany(fetch = FetchType.EAGER)

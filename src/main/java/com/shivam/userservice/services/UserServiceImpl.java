@@ -52,7 +52,8 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setName(name);
         user.setEmail(email);
-        user.setHashedPassword(bCryptPasswordEncoder.encode(password));
+        if (password != null && !password.isBlank())
+            user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
         Role role = roleRepository.findByNameAndStatus("Customer",Status.ACTIVE)
                         .orElseGet(() -> {
@@ -73,14 +74,26 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String login(String email, String password) throws UserNotFoundException, PasswordMismatchException {
+        if (password == null){
+            // user had signed up using oAuth flow
+            throw new UserNotFoundException("User is not signed in");
+        }
+
         User user = userRepository.findByEmailAndStatus(email,Status.ACTIVE)
                 .orElseThrow(() -> new UserNotFoundException("Invalid email id."));
+
+
 
         if (!bCryptPasswordEncoder.matches(password, user.getHashedPassword())){
             throw new PasswordMismatchException("Either incorrect email or password is entered.");
         }
 
         //Generating JWT
+        String token  = generateToken(user);
+        return token;
+    }
+
+    private String generateToken(User user){
         String token = tokenService.generateToken(user);
 
         // Saving this token to maintain multiple sessions for user
@@ -89,6 +102,15 @@ public class UserServiceImpl implements UserService {
         session.setUser(user);
         sessionRepository.save(session);
 
+        System.out.println("Token : " + token);
+        return token;
+    }
+
+    @Override
+    public String oauthLogin(String email, String name){
+        User user = userRepository.findByEmailAndStatus(email,Status.ACTIVE)
+                .orElseGet(() -> signUp(name,email,null));
+        String token = generateToken(user);
         return token;
     }
 

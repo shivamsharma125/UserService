@@ -3,7 +3,7 @@ package com.shivam.userservice.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shivam.userservice.configs.KafkaProducerClient;
-import com.shivam.userservice.dtos.SendEmailDto;
+import com.shivam.userservice.dtos.EmailDto;
 import com.shivam.userservice.exceptions.*;
 import com.shivam.userservice.models.Role;
 import com.shivam.userservice.models.Session;
@@ -142,14 +142,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendWelcomeEmail(User user) {
-        SendEmailDto sendEmailDto = new SendEmailDto();
+        EmailDto sendEmailDto = new EmailDto();
         sendEmailDto.setTo(user.getEmail());
         sendEmailDto.setSubject("Welcome Email");
         sendEmailDto.setBody("Have a great learning experience!!");
 
-
         try {
-            kafkaProducerClient.sendMessage("SendEmail", objectMapper.writeValueAsString(sendEmailDto));
+            kafkaProducerClient.sendMessage("signup", objectMapper.writeValueAsString(sendEmailDto));
         } catch (JsonProcessingException e) {
             System.out.println("Something went wrong while sending a message to Kafka");
         }

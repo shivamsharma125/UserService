@@ -1,6 +1,6 @@
 package com.shivam.userservice.security;
 
-import com.shivam.userservice.services.UserService;
+import com.shivam.userservice.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
@@ -14,9 +14,9 @@ import java.io.IOException;
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    private final UserService userService;
+    private final AuthService userService;
 
-    public OAuth2LoginSuccessHandler(UserService userService) {
+    public OAuth2LoginSuccessHandler(AuthService userService) {
         this.userService = userService;
     }
 

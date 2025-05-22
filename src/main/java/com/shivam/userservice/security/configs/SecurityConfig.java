@@ -23,7 +23,7 @@ public class SecurityConfig {
                 .csrf(customizer -> customizer.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("users/signup","users/login","users/validate").permitAll()
+                        .requestMatchers("auth/signup","auth/login","auth/validate","users/{userId}").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2.successHandler(oauth2SuccessHandler))
                 .build();

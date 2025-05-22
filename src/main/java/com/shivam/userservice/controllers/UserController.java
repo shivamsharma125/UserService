@@ -44,4 +44,10 @@ public class UserController {
         Boolean isValidToken = userService.validateToken(requestDto.getUserId(), requestDto.getToken());
         return ResponseEntity.ok(isValidToken);
     }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long userId){
+        User user = userService.getUserById(userId);
+        return ResponseEntity.ok(from(user));
+    }
 }

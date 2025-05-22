@@ -10,4 +10,5 @@ public interface UserService {
     String login(String email, String password) throws UserNotFoundException, PasswordMismatchException;
     Boolean validateToken(Long userId, String token);
     String oauthLogin(String email, String name);
+    User getUserById(Long userId);
 }

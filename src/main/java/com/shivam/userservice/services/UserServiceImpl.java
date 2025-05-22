@@ -141,6 +141,12 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
+    @Override
+    public User getUserById(Long userId) {
+        return userRepository.findByIdAndStatus(userId,Status.ACTIVE)
+                .orElseThrow(() -> new UserNotFoundException("user with id " + userId + " does not exist"));
+    }
+
     private void sendWelcomeEmail(User user) {
         SendEmailDto sendEmailDto = new SendEmailDto();
         sendEmailDto.setTo(user.getEmail());

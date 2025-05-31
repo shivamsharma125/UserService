@@ -23,4 +23,9 @@ public class ExceptionHandlerAdvice {
     public ResponseEntity<String> handleUnAuthorizedCase(Exception exception) {
         return new ResponseEntity<>(exception.getMessage(),HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<String> handleBadRequest(Exception ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 }

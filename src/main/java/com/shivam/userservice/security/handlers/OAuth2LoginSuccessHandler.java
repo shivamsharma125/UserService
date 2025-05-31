@@ -1,4 +1,4 @@
-package com.shivam.userservice.security;
+package com.shivam.userservice.security.handlers;
 
 import com.shivam.userservice.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;

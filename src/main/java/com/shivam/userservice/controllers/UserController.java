@@ -1,13 +1,11 @@
 package com.shivam.userservice.controllers;
 
+import com.shivam.userservice.dtos.UpdateUserRequestDto;
 import com.shivam.userservice.dtos.UserDto;
 import com.shivam.userservice.models.User;
 import com.shivam.userservice.services.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import static com.shivam.userservice.utils.UserUtil.from;
 
@@ -23,6 +21,12 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long userId){
         User user = userService.getUserById(userId);
+        return ResponseEntity.ok(from(user));
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<UserDto> updateUser(@PathVariable Long userId, @RequestBody UpdateUserRequestDto request){
+        User user = userService.updateUser(userId, request);
         return ResponseEntity.ok(from(user));
     }
 }

@@ -21,7 +21,7 @@ A robust and stateless Spring Boot-based User Service that provides complete use
 ## Technologies Used
 
 * Java 17
-* Spring Boot 3.x
+* Spring Boot 3
 * Spring Security
 * JWT (JJWT Library)
 * OAuth2 Client
